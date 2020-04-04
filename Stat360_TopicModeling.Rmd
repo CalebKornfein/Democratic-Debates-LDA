@@ -3,6 +3,85 @@ title: "Stat 360 Topic Modeling"
 output: html_document
 ---
 
-This is a test.
+```{r packages}
+library(tidyverse)
+library(tm)
+library(stringr)
+library(wordcloud)
+```
 
-Hello
+## Loading Data
+
+```{r loading}
+debates <- read_csv("debate_transcripts_v3_2020-02-26.csv")
+```
+
+## Cleaning Data
+
+```{r data}
+# Here I drop all the columns except speaker and speech
+
+keeps <- c("speaker", "speech")
+debates<- debates[ , keeps, drop = FALSE]
+
+# A list of all the democratic candidates that appeared in any of the debates -- searched online
+
+demCandidates <- c("Michael Bennet", "Joe Biden", "Cory Booker", "Pete Buttigieg", "Julian Castro", "Bill de Blasio", "John Delaney", "Tulsi Gabbard", "Kirsten Gillibrand", "Kamala Harris", "Jay Inslee", "Amy Klobuchar", "Beto O'Rourke", "Tim Ryan", "Bernie Sanders", "Eric Swalwell", "Elizabeth Warren", "Marianne Williamson", "Andrew Yang", "Michael Bloomberg")
+
+# Filtering the rows out that are not spoken by one of the democratic candidates. Also lol it took me like half an hour to figure out how to include Beto since he had a special symbol in his name
+
+debates <- subset(debates, speaker %in% demCandidates)
+
+# Double checking we got everyone
+length(demCandidates)
+length(unique(debates$speaker))
+
+# Collapsing the speech text by speaker, such that each candidates total responses from all of the debates forms a document
+
+debates <- aggregate(speech ~ speaker, data = debates, FUN = paste, collapse = " ")
+
+## NOTE: I think I did this correctly with the collapse parameter, however I'm not sure if the speech from a candidate pasted all the quotes together WITH or WITHOUT a space which is important
+
+## Next I am removing punctuation from the speeches
+
+debates$speech <- removePunctuation(debates$speech)
+```
+## Start using the tm package here for some fancy shenanigans
+
+```{r tmMagic}
+# definining a "corpus" from the dataframe
+debates_source <- VectorSource(debates$speech)
+debates_corpus <- VCorpus(debates_source)
+
+# stripping whitespace
+debates_corpus <- tm_map(debates_corpus, stripWhitespace)
+
+# converting to all lower case
+debates_corpus <- tm_map(debates_corpus, content_transformer(tolower))
+
+# removing common stopwords aka words such as 'a', 'the', 'also'
+debates_corpus <- tm_map(debates_corpus, removeWords, stopwords("english"))
+```
+
+## Moving on to creating matrices of data
+
+```{r matrixMagic}
+#created a matrix with speaker aka document as the rows (1 - 20) and word as column, with first column being the most frequent word used in the total documents. A ij of the matrix represents that the word in the column index was spoken j times by the ith candidate
+dtm <- DocumentTermMatrix(debates_corpus)
+inspect(dtm)
+
+# list of words spoken by candidates at least 100 total times during the debate
+findFreqTerms(dtm, 100)
+```
+
+## Visualizing data as wordclouds
+
+```{r wordcloud}
+set.seed(1)
+
+# wordcloud of all the candidates together
+
+freq <- colSums(as.matrix(dtm)) 
+wordcloud(names(freq), freq, min.freq=150, colors=brewer.pal(6, "Dark2"))  
+```
+
