@@ -3,7 +3,7 @@ title: "Stat 360 Topic Modeling"
 output: html_document
 ---
 
-```{r packages}
+```{r packages, message=FALSE}
 library(tidyverse)
 library(tm)
 library(stringr)
@@ -12,13 +12,16 @@ library(wordcloud)
 
 ## Loading Data
 
-```{r loading}
+```{r loading, message=FALSE}
 debates <- read_csv("debate_transcripts_v3_2020-02-26.csv")
 ```
 
 ## Cleaning Data
 
 ```{r data}
+# Set global seed
+set.seed(1)
+
 # Here I drop all the columns except speaker and speech
 
 keeps <- c("speaker", "speech")
@@ -83,5 +86,13 @@ set.seed(1)
 
 freq <- colSums(as.matrix(dtm)) 
 wordcloud(names(freq), freq, min.freq=150, colors=brewer.pal(6, "Dark2"))  
+```
+
+```{r wordcloud-per-candidate, warning=FALSE, cache=TRUE}
+for(i in 1:20){
+    m <- as.matrix(dtm[i,])
+    freq <- colSums(m) 
+    wordcloud(names(freq), m, min.freq=50, colors=brewer.pal(6, "Dark2"))  
+}
 ```
 
