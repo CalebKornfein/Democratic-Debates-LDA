@@ -8,6 +8,7 @@ library(tidyverse)
 library(tm)
 library(stringr)
 library(wordcloud)
+library(topicmodels)
 ```
 
 ## Loading Data
@@ -64,6 +65,12 @@ debates_corpus <- tm_map(debates_corpus, content_transformer(tolower))
 
 # removing common stopwords aka words such as 'a', 'the', 'also'
 debates_corpus <- tm_map(debates_corpus, removeWords, stopwords("english"))
+
+# removing numbers
+debates_corpus <- tm_map(debates_corpus, removeNumbers)
+
+# removing punctuation
+debates_corpus <- tm_map(debates_corpus, removePunctuation)
 ```
 
 ## Moving on to creating matrices of data
@@ -88,11 +95,14 @@ freq <- colSums(as.matrix(dtm))
 wordcloud(names(freq), freq, min.freq=150, colors=brewer.pal(6, "Dark2"))  
 ```
 
-```{r wordcloud-per-candidate, warning=FALSE, cache=TRUE}
 for(i in 1:20){
-    m <- as.matrix(dtm[i,])
-    freq <- colSums(m) 
-    wordcloud(names(freq), m, min.freq=50, colors=brewer.pal(6, "Dark2"))  
+m <- as.matrix(dtm[i,])
+freq <- colSums(m) 
+wordcloud(names(freq), m, min.freq=50, colors=brewer.pal(6, "Dark2"))  
 }
+
+## Example LDA Model
+```{r}
+LDA(dtm, 15, method = "VEM", control = NULL, model = NULL)
 ```
 
