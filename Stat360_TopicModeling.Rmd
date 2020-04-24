@@ -9,6 +9,7 @@ library(tm)
 library(stringr)
 library(wordcloud)
 library(topicmodels)
+library(ldatuning)
 ```
 
 ## Loading Data
@@ -50,6 +51,7 @@ debates <- aggregate(speech ~ speaker, data = debates, FUN = paste, collapse = "
 
 debates$speech <- removePunctuation(debates$speech)
 ```
+
 ## Start using the tm package here for some fancy shenanigans
 
 ```{r tmMagic}
@@ -71,6 +73,11 @@ debates_corpus <- tm_map(debates_corpus, removeNumbers)
 
 # removing punctuation
 debates_corpus <- tm_map(debates_corpus, removePunctuation)
+
+#removing other uninformative words that came up
+
+Stopwords <- c("can", "actually", "weve", "also", "whats", "youre", "think", "tell", "yes", "want", "well", "bit", "get", "thats", "theyre", "thing")
+debates_corpus <- tm_map(debates_corpus, removeWords, Stopwords)
 ```
 
 ## Moving on to creating matrices of data
@@ -101,8 +108,47 @@ freq <- colSums(m)
 wordcloud(names(freq), m, min.freq=50, colors=brewer.pal(6, "Dark2"))  
 }
 
+
+
 ## Example LDA Model
+
+```{r model}
+ALPHA <- .1 ; K <- 8 ; S <- 10000 ; BURNIN = 2000
+
+lda <- LDA(dtm                              #inputting our document-term-matrix
+           , method = "Gibbs"               #we will be using Gibbs sampling
+           , control = list(alpha = ALPHA   #inputting alpha hyperparameter
+           , seed = 1                       #setting seed to 1
+           , delta = .1                     #setting delta hyperparameter
+           , iter = S                       #number of trials equal to S
+           , burnin = BURNIN)               #adding burn in period
+           , k = K)                         #fixing the number of topics
+```
+
+
+```{r visualizing}
+topics(lda, k = 8)
+terms(lda, k = 8)
+```
+
+```{r optimalTopics}
+topicStats <- FindTopicsNumber(dtm
+                ,topics = seq(4, 20, by = 1)
+                ,metrics = c("Arun2010", "CaoJuan2009", "Griffiths2004")
+                ,method = "Gibbs"
+                ,control = list(alpha = ALPHA   #inputting alpha hyperparameter
+                ,seed = 1                       #setting seed to 1
+                ,delta = .1                     #setting delta hyperparameter
+                ,iter = S                       #number of trials equal to S
+                ,burnin = BURNIN))              #adding burn in period
+```
+
+```{r plotting-model-criterion}
+FindTopicsNumber_plot(topicStats)
+```
+
+
 ```{r}
-LDA(dtm, 15, method = "VEM", control = NULL, model = NULL)
+posterior(lda)
 ```
 
