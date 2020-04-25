@@ -114,7 +114,7 @@ wordcloud(names(freq), m, min.freq=50, colors=brewer.pal(6, "Dark2"))
 ## Example LDA Model
 
 ```{r model}
-ALPHA <- .1 ; K <- 8 ; S <- 3000 ; BURNIN = 0
+ALPHA <- .1 ; K <- 7 ; S <- 2000 ; BURNIN = 0
 
 lda <- LDA(dtm                              #inputting our document-term-matrix
            , method = "Gibbs"               #we will be using Gibbs sampling
