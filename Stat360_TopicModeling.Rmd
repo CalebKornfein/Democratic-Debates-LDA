@@ -10,6 +10,7 @@ library(stringr)
 library(wordcloud)
 library(topicmodels)
 library(ldatuning)
+library(usethis)
 ```
 
 ## Loading Data
@@ -113,7 +114,7 @@ wordcloud(names(freq), m, min.freq=50, colors=brewer.pal(6, "Dark2"))
 ## Example LDA Model
 
 ```{r model}
-ALPHA <- .1 ; K <- 8 ; S <- 10000 ; BURNIN = 2000
+ALPHA <- .1 ; K <- 8 ; S <- 3000 ; BURNIN = 0
 
 lda <- LDA(dtm                              #inputting our document-term-matrix
            , method = "Gibbs"               #we will be using Gibbs sampling
@@ -133,7 +134,7 @@ terms(lda, k = 8)
 
 ```{r optimalTopics}
 topicStats <- FindTopicsNumber(dtm
-                ,topics = seq(4, 20, by = 1)
+                ,topics = seq(3, 30, by = 1)
                 ,metrics = c("Arun2010", "CaoJuan2009", "Griffiths2004")
                 ,method = "Gibbs"
                 ,control = list(alpha = ALPHA   #inputting alpha hyperparameter
