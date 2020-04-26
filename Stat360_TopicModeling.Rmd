@@ -3,14 +3,19 @@ title: "Stat 360 Topic Modeling"
 output: html_document
 ---
 
+## Loading Packages
+
 ```{r packages, message=FALSE}
 library(tidyverse)
 library(tm)
 library(stringr)
+library(stringi)
 library(wordcloud)
 library(topicmodels)
 library(ldatuning)
 library(usethis)
+library(LDAvis)
+library(servr)
 ```
 
 ## Loading Data
@@ -103,15 +108,19 @@ freq <- colSums(as.matrix(dtm))
 wordcloud(names(freq), freq, min.freq=150, colors=brewer.pal(6, "Dark2"))  
 ```
 
-for(i in 1:20){
-m <- as.matrix(dtm[i,])
-freq <- colSums(m) 
-wordcloud(names(freq), m, min.freq=50, colors=brewer.pal(6, "Dark2"))  
-}
+## Visualizing each candidate's wordcloud
 
-
+```{r personal-wordclouds}
+# for(i in 1:20){
+#   m <- as.matrix(dtm[i,])
+#   freq <- colSums(m) 
+#   wordcloud(names(freq), m, min.freq=50, colors=brewer.pal(6, "Dark2"))  
+# }
+```
 
 ## Example LDA Model
+
+This LDA function is from the `topicmodels` package. It "estimate[s] a LDA model using for example...Gibbs Sampling" [https://cran.r-project.org/web/packages/topicmodels/topicmodels.pdf]. This will return an object of class LDA, on which we can perform analysis.
 
 ```{r model}
 ALPHA <- .1 ; K <- 7 ; S <- 2000 ; BURNIN = 0
@@ -126,11 +135,14 @@ lda <- LDA(dtm                              #inputting our document-term-matrix
            , k = K)                         #fixing the number of topics
 ```
 
+These two functions return a list or matrix containing the most likely terms for each topic and the most likely topics for each document, respectively:
 
 ```{r visualizing}
-topics(lda, k = 8)
-terms(lda, k = 8)
+topics(lda, k = 7)
+terms(lda, k = 7)
 ```
+
+This function comes from the `ldatuning` package. This function "calculates different metrics to estimate the most preferable number of topics for LDA model" [https://cran.r-project.org/web/packages/ldatuning/ldatuning.pdf]. Here, it uses 3 scoring algorithsm to evaluate the number of topics: Arun 2010, CaoJuan 2009, and Griffiths 2004. 
 
 ```{r optimalTopics}
 topicStats <- FindTopicsNumber(dtm
@@ -144,12 +156,45 @@ topicStats <- FindTopicsNumber(dtm
                 ,burnin = BURNIN))              #adding burn in period
 ```
 
+This function takes the output from the previous function, a number of topics and the corresponding value from the given metric, and plots the change in values over the number of topics for each metric:
+
 ```{r plotting-model-criterion}
 FindTopicsNumber_plot(topicStats)
 ```
 
+After running producting the lda model above, the posterior function helps to evaluate the posterior probabilities of the specific terms per each topic and the specific topics per document. 
 
-```{r}
+```{r posterior-lda}
 posterior(lda)
 ```
 
+Question: Do we want to consider perplexity? Split the data into training and testing to see how well the model predicts for different candidates?
+
+## Visualize fitted model with LDAvis
+
+Function from [https://gist.github.com/trinker/477d7ae65ff6ca73cace] to connect the output from the LDA function in the `topicmodels` package and the visualization tools in the `LDAvis` package:
+
+```{r create-json}
+topicmodels2LDAvis <- function(x, ...){
+    post <- posterior(x)
+    if (ncol(post[["topics"]]) < 3) stop("The model must contain > 2 topics")
+    mat <- x@wordassignments
+    createJSON(
+        phi = post[["terms"]], 
+        theta = post[["topics"]],
+        vocab = colnames(post[["terms"]]),
+        doc.length = slam::row_sums(mat, na.rm = TRUE),
+        term.frequency = slam::col_sums(mat, na.rm = TRUE)
+    )
+}
+
+json <- topicmodels2LDAvis(lda)
+```
+
+```{r visualize-json}
+serVis(json, open.brower=interactive())
+
+# To potentially save the visualization locally and host it, we can use this code
+# If we want to publish it on Github, we can add as.gist=TRUE
+#serVis(json, out.dir="Desktop", open.browser=interactive())
+```
