@@ -82,15 +82,16 @@ debates_corpus <- tm_map(debates_corpus, removePunctuation)
 
 #removing other uninformative words that came up
 
-Stopwords <- c("can", "actually", "weve", "also", "whats", "youre", "think", "tell", "yes", "want", "well", "bit", "get", "thats", "theyre", "thing")
+Stopwords <- c("can", "actually", "weve", "also", "whats", "youre", "think", "tell", "yes", "want", "well", "bit", "get", "thats", "theyre", "thing", "ive", "able", "like", "lets", "lot", "let", "one", "will", "got", "dont", "said", "put", "done")
 debates_corpus <- tm_map(debates_corpus, removeWords, Stopwords)
 ```
 
-## Moving on to creating matrices of data
+## Moving on to creating matrices of data`
 
 ```{r matrixMagic}
 #created a matrix with speaker aka document as the rows (1 - 20) and word as column, with first column being the most frequent word used in the total documents. A ij of the matrix represents that the word in the column index was spoken j times by the ith candidate
 dtm <- DocumentTermMatrix(debates_corpus)
+rownames(dtm) <- debates$speaker
 inspect(dtm)
 
 # list of words spoken by candidates at least 100 total times during the debate
@@ -99,23 +100,25 @@ findFreqTerms(dtm, 100)
 
 ## Visualizing data as wordclouds
 
+
 ```{r wordcloud}
 set.seed(1)
 
 # wordcloud of all the candidates together
 
 freq <- colSums(as.matrix(dtm)) 
-wordcloud(names(freq), freq, min.freq=150, colors=brewer.pal(6, "Dark2"))  
+wordcloud(names(freq), freq, min.freq=225, colors=brewer.pal(6, "Dark2"), random.color = TRUE)  
 ```
 
 ## Visualizing each candidate's wordcloud
 
 ```{r personal-wordclouds}
-# for(i in 1:20){
+# findMostFreqTerms(dtm, INDEX = rep(1 : 20, each = 1L))
+#for(i in 1:2){
 #   m <- as.matrix(dtm[i,])
 #   freq <- colSums(m) 
 #   wordcloud(names(freq), m, min.freq=50, colors=brewer.pal(6, "Dark2"))  
-# }
+#}
 ```
 
 ## Example LDA Model
@@ -123,7 +126,7 @@ wordcloud(names(freq), freq, min.freq=150, colors=brewer.pal(6, "Dark2"))
 This LDA function is from the `topicmodels` package. It "estimate[s] a LDA model using for example...Gibbs Sampling" [https://cran.r-project.org/web/packages/topicmodels/topicmodels.pdf]. This will return an object of class LDA, on which we can perform analysis.
 
 ```{r model}
-ALPHA <- .1 ; K <- 7 ; S <- 2000 ; BURNIN = 0
+ALPHA <- .1 ; K <- 15 ; S <- 1000 ; BURNIN = 0;
 
 lda <- LDA(dtm                              #inputting our document-term-matrix
            , method = "Gibbs"               #we will be using Gibbs sampling
@@ -138,16 +141,18 @@ lda <- LDA(dtm                              #inputting our document-term-matrix
 These two functions return a list or matrix containing the most likely terms for each topic and the most likely topics for each document, respectively:
 
 ```{r visualizing}
-topics(lda, k = 7)
-terms(lda, k = 7)
+topics(lda, k = 20)
+terms(lda, k = 20)
 ```
 
-This function comes from the `ldatuning` package. This function "calculates different metrics to estimate the most preferable number of topics for LDA model" [https://cran.r-project.org/web/packages/ldatuning/ldatuning.pdf]. Here, it uses 3 scoring algorithsm to evaluate the number of topics: Arun 2010, CaoJuan 2009, and Griffiths 2004. 
+This function comes from the `ldatuning` package. This function "calculates different metrics to estimate the most preferable number of topics for LDA model" [https://cran.r-project.org/web/packages/ldatuning/ldatuning.pdf]. Here, it uses 4 scoring algorithsm to evaluate the number of topics: Arun 2010, CaoJuan 2009, Griffiths 2004, and Deveaud 2014. 
 
 ```{r optimalTopics}
+BURNIN = 0
+S = 100
 topicStats <- FindTopicsNumber(dtm
-                ,topics = seq(3, 30, by = 1)
-                ,metrics = c("Arun2010", "CaoJuan2009", "Griffiths2004")
+                ,topics = seq(5, 25, by = 1)
+                ,metrics = c("Arun2010", "CaoJuan2009", "Griffiths2004", "Deveaud2014")
                 ,method = "Gibbs"
                 ,control = list(alpha = ALPHA   #inputting alpha hyperparameter
                 ,seed = 1                       #setting seed to 1
