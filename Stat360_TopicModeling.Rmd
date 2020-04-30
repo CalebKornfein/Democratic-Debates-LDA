@@ -20,6 +20,7 @@ library(LDAvis)
 library(servr)
 library(lda)
 library(gistr)
+library(reshape2)
 ```
 
 ## Loading Data
@@ -34,7 +35,7 @@ debates <- read_csv("debate_transcripts_v3_2020-02-26.csv")
 # Set global seed
 set.seed(1)
 
-# Here I drop all the columns except speaker and speech
+# Here we drop all the columns except speaker and speech
 
 keeps <- c("speaker", "speech")
 debates<- debates[ , keeps, drop = FALSE]
@@ -55,9 +56,7 @@ length(unique(debates$speaker))
 
 debates <- aggregate(speech ~ speaker, data = debates, FUN = paste, collapse = " ")
 
-## NOTE: I think I did this correctly with the collapse parameter, however I'm not sure if the speech from a candidate pasted all the quotes together WITH or WITHOUT a space which is important
-
-## Next I am removing punctuation from the speeches
+## Next we remove punctuation from the speeches
 
 debates$speech <- removePunctuation(debates$speech)
 ```
@@ -118,13 +117,13 @@ wordcloud(names(freq), freq, min.freq=175, colors=brewer.pal(6, "Dark2"), random
 This LDA function is from the `topicmodels` package. It "estimate[s] a LDA model using for example...Gibbs Sampling" [https://cran.r-project.org/web/packages/topicmodels/topicmodels.pdf]. This will return an object of class LDA, on which we can perform analysis.
 
 ```{r model}
-ALPHA <- .1 ; K <- 15 ; S <- 10000 ; BURNIN = 0;
+ALPHA <- .01 ; K <- 15 ; S <- 10000 ; BURNIN = 0;
 
 lda <- LDA(dtm                              #inputting our document-term-matrix
            , method = "Gibbs"               #we will be using Gibbs sampling
            , control = list(alpha = ALPHA   #inputting alpha hyperparameter
            , seed = 1                       #setting seed to 1
-           , delta = .14                     #setting delta hyperparameter
+           , delta = .01                     #setting delta hyperparameter
            , iter = S                       #number of trials equal to S
            , burnin = BURNIN)               #adding burn in period
            , k = K)                         #fixing the number of topics
@@ -134,7 +133,7 @@ These two functions return a list or matrix containing the most likely terms for
 
 ```{r visualizing}
 topics(lda, k = 20)
-terms(lda, k = 40)
+terms(lda, k = 20)
 ```
 
 This function comes from the `ldatuning` package. This function "calculates different metrics to estimate the most preferable number of topics for LDA model" [https://cran.r-project.org/web/packages/ldatuning/ldatuning.pdf]. Here, it uses 4 scoring algorithsm to evaluate the number of topics: Arun 2010, CaoJuan 2009, Griffiths 2004, and Deveaud 2014. 
@@ -143,7 +142,7 @@ This function comes from the `ldatuning` package. This function "calculates diff
 BURNIN = 0
 S = 1000
 topicStats <- FindTopicsNumber(dtm
-                ,topics = seq(3, 35, by = 2)
+                ,topics = seq(3, 35, by = 1)
                 ,metrics = c("Arun2010", "CaoJuan2009", "Griffiths2004", "Deveaud2014")
                 ,method = "Gibbs"
                 ,control = list(alpha = ALPHA   #inputting alpha hyperparameter for topics over documents
@@ -162,8 +161,7 @@ FindTopicsNumber_plot(topicStats)
 After running producting the lda model above, the posterior function helps to evaluate the posterior probabilities of the specific terms per each topic and the specific topics per document. 
 
 ```{r posterior-lda}
-beta <- posterior(lda)$terms #hyperparameter beta is the terms per topic
-
+beta <- posterior(lda)$terms # beta is the terms per topic
 theta <- posterior(lda)$topics
 theta
 ```
@@ -173,8 +171,8 @@ theta
 Next, we can assign pseudo-names for each topic by concatenating the 5 terms with the highest probability from each topic.
 
 ```{r pseudo-topic-names}
-pseudo_name <- terms(lda, 5)
-topicNames <- apply(pseudo_name, 2, paste, collapse=" ")
+pseudo_name <- terms(lda, 4)
+topicNames <- apply(pseudo_name, 2, paste, collapse="-")
 topicNames
 ```
 
