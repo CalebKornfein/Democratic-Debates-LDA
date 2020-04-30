@@ -19,6 +19,7 @@ library(usethis)
 library(LDAvis)
 library(servr)
 library(lda)
+library(gistr)
 ```
 
 ## Loading Data
@@ -243,9 +244,6 @@ json <- topicmodels2LDAvis(lda)
 ```
 
 ```{r visualize-json}
-serVis(json, open.brower=interactive())
-
-# To potentially save the visualization locally and host it, we can use this code
-# If we want to publish it on Github, we can add as.gist=TRUE
-#serVis(json, out.dir="Desktop", open.browser=interactive())
+serVis(json, open.brower=interactive(), out.dir = "LDAvis_files", 
+       as.gist = TRUE)
 ```
