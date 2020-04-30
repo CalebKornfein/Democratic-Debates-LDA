@@ -38,7 +38,7 @@ set.seed(1)
 # Here we drop all the columns except speaker and speech
 
 keeps <- c("speaker", "speech")
-debates<- debates[ , keeps, drop = FALSE]
+debates <- debates[, keeps, drop = FALSE]
 
 # A list of all the democratic candidates that appeared in any of the debates -- searched online
 
@@ -86,6 +86,7 @@ debates_corpus <- tm_map(debates_corpus, removePunctuation)
 #removing other uninformative words that came up
 
 Stopwords <- c("can", "actually", "weve", "also", "whats", "youre", "think", "tell", "yes", "want", "well", "bit", "get", "thats", "theyre", "thing", "ive", "able", "like", "lets", "lot", "let", "one", "will", "got", "dont", "said", "put", "done", "going", "around", "part", "two", "good", "act", "say", "sure", "things", "make", "theres", "way", "say", "take", "talk", "something", "many", "new", "people", "see", "just", "need", "now", "away", "even", "much", "really", "cant", "day", "number", "look", "matter", "clear", "understand", "know")
+
 debates_corpus <- tm_map(debates_corpus, removeWords, Stopwords)
 ```
 
@@ -93,37 +94,62 @@ debates_corpus <- tm_map(debates_corpus, removeWords, Stopwords)
 
 ```{r matrixMagic}
 #created a matrix with speaker aka document as the rows (1 - 20) and word as column, with first column being the most frequent word used in the total documents. A ij of the matrix represents that the word in the column index was spoken j times by the ith candidate
+
 dtm <- DocumentTermMatrix(debates_corpus)
 rownames(dtm) <- debates$speaker
 inspect(dtm)
 
 # list of words spoken by candidates at least 100 total times during the debate
+
 findFreqTerms(dtm, 100)
 ```
 
 ## Visualizing data as wordclouds
 
 ```{r wordcloud}
-set.seed(1)
-
 # wordcloud of all the candidates together
 
 freq <- colSums(as.matrix(dtm)) 
 wordcloud(names(freq), freq, min.freq=175, colors=brewer.pal(6, "Dark2"), random.color = TRUE) 
 ```
 
+## Finding Optimal Number of Topics
+
+This function comes from the `ldatuning` package. This function "calculates different metrics to estimate the most preferable number of topics for LDA model" [https://cran.r-project.org/web/packages/ldatuning/ldatuning.pdf]. Here, it uses 4 scoring algorithms to evaluate the number of topics: Arun 2010, CaoJuan 2009, Griffiths 2004, and Deveaud 2014. 
+
+```{r optimalTopics, cache=TRUE}
+N <- 2500 ; ALPHA <- .01 ; BURNIN = 200;
+
+topicStats <- FindTopicsNumber(dtm
+                , topics = seq(3, 35, by = 2)
+                , metrics = c("Arun2010", "CaoJuan2009", "Griffiths2004", "Deveaud2014")
+                , method = "Gibbs"
+                , control = list(alpha = ALPHA   #inputting alpha hyperparameter for topics over documents
+                , seed = 1                       #setting seed to 1
+                , delta = .01                    #setting delta hyperparameter for words over topics
+                , iter = N                       #number of trials equal to N
+                , burnin = BURNIN)
+                , mc.cores = 4L)                 #adding burn in period
+```
+
+This function takes the output from the previous function, a number of topics and the corresponding value from the given metric, and plots the change in values over the number of topics for each metric:
+
+```{r plotting-model-criterion}
+FindTopicsNumber_plot(topicStats)
+```
+
 ## LDA Model
 
-This LDA function is from the `topicmodels` package. It "estimate[s] a LDA model using for example...Gibbs Sampling" [https://cran.r-project.org/web/packages/topicmodels/topicmodels.pdf]. This will return an object of class LDA, on which we can perform analysis.
+This LDA function is from the `topicmodels` package. It "estimate[s] a LDA model using for example...Gibbs Sampling" [https://cran.r-project.org/web/packages/topicmodels/topicmodels.pdf]. This will return an object of class LDA, on which we can perform analysis. The K value was chosen after analyzing the plot above of the 4 scoring metrics for the optimal number of topics.
 
-```{r model}
-ALPHA <- .01 ; K <- 15 ; S <- 10000 ; BURNIN = 0;
+```{r model, cache=TRUE}
+K <- 13 ; S <- 10000;
 
 lda <- LDA(dtm                              #inputting our document-term-matrix
            , method = "Gibbs"               #we will be using Gibbs sampling
            , control = list(alpha = ALPHA   #inputting alpha hyperparameter
            , seed = 1                       #setting seed to 1
-           , delta = .01                     #setting delta hyperparameter
+           , delta = .01                    #setting delta hyperparameter
            , iter = S                       #number of trials equal to S
            , burnin = BURNIN)               #adding burn in period
            , k = K)                         #fixing the number of topics
@@ -136,28 +162,6 @@ topics(lda, k = 20)
 terms(lda, k = 20)
 ```
 
-This function comes from the `ldatuning` package. This function "calculates different metrics to estimate the most preferable number of topics for LDA model" [https://cran.r-project.org/web/packages/ldatuning/ldatuning.pdf]. Here, it uses 4 scoring algorithsm to evaluate the number of topics: Arun 2010, CaoJuan 2009, Griffiths 2004, and Deveaud 2014. 
-
-```{r optimalTopics}
-BURNIN = 0
-S = 1000
-topicStats <- FindTopicsNumber(dtm
-                ,topics = seq(3, 35, by = 1)
-                ,metrics = c("Arun2010", "CaoJuan2009", "Griffiths2004", "Deveaud2014")
-                ,method = "Gibbs"
-                ,control = list(alpha = ALPHA   #inputting alpha hyperparameter for topics over documents
-                ,seed = 1                       #setting seed to 1
-                ,delta = .1                     #setting delta hyperparameter for words over topics
-                ,iter = S                       #number of trials equal to S
-                ,burnin = BURNIN))              #adding burn in period
-```
-
-This function takes the output from the previous function, a number of topics and the corresponding value from the given metric, and plots the change in values over the number of topics for each metric:
-
-```{r plotting-model-criterion}
-FindTopicsNumber_plot(topicStats)
-```
-
 After running producting the lda model above, the posterior function helps to evaluate the posterior probabilities of the specific terms per each topic and the specific topics per document. 
 
 ```{r posterior-lda}
@@ -168,7 +172,7 @@ theta
 
 ## Visualized topics and terms
 
-Next, we can assign pseudo-names for each topic by concatenating the 5 terms with the highest probability from each topic.
+Next, we can assign pseudo-names for each topic by concatenating the 4 terms with the highest probability from each topic.
 
 ```{r pseudo-topic-names}
 pseudo_name <- terms(lda, 4)
@@ -194,7 +198,7 @@ As referenced in [https://tm4ss.github.io/docs/Tutorial_6_Topic_Models.html], TF
 
 ```{r re-rank}
 # re-rank top topic terms for topic names
-topicNames <- apply(lda::top.topic.words(beta, 5, by.score = T), 2, paste, collapse = " ")
+topicNames <- apply(lda::top.topic.words(beta, 4, by.score = T), 2, paste, collapse = " ")
 
 # Most probable topics across the corpus, sorted in descending order
 topicProportions <- colSums(theta) / nrow(dtm)  # mean probablities over all paragraphs
@@ -209,7 +213,7 @@ data <- data %>%
     group_by(Var2) %>%
     mutate(value = value/sum(value))
 
-mycolors <- colorRampPalette(brewer.pal(8, "Set2"))(15)
+mycolors <- colorRampPalette(brewer.pal(8, "Set2"))(K)
 
 glimpse(data)
 ggplot(data, mapping=aes(x=Var2, y=value, fill= as.factor(Var1))) +
