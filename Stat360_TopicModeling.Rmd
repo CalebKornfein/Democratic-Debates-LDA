@@ -1,5 +1,7 @@
 ---
 title: "Stat 360 Topic Modeling"
+author: "Meredith Brown and Caleb Kornfein"
+date: "`r Sys.Date()`"
 output: html_document
 ---
 
@@ -16,6 +18,7 @@ library(ldatuning)
 library(usethis)
 library(LDAvis)
 library(servr)
+library(lda)
 ```
 
 ## Loading Data
@@ -86,7 +89,7 @@ Stopwords <- c("can", "actually", "weve", "also", "whats", "youre", "think", "te
 debates_corpus <- tm_map(debates_corpus, removeWords, Stopwords)
 ```
 
-## Moving on to creating matrices of data`
+## Moving on to creating matrices of data
 
 ```{r matrixMagic}
 #created a matrix with speaker aka document as the rows (1 - 20) and word as column, with first column being the most frequent word used in the total documents. A ij of the matrix represents that the word in the column index was spoken j times by the ith candidate
@@ -100,28 +103,16 @@ findFreqTerms(dtm, 100)
 
 ## Visualizing data as wordclouds
 
-
 ```{r wordcloud}
 set.seed(1)
 
 # wordcloud of all the candidates together
 
 freq <- colSums(as.matrix(dtm)) 
-wordcloud(names(freq), freq, min.freq=175, colors=brewer.pal(6, "Dark2"), random.color = TRUE)  
+wordcloud(names(freq), freq, min.freq=175, colors=brewer.pal(6, "Dark2"), random.color = TRUE) 
 ```
 
-## Visualizing each candidate's wordcloud
-
-```{r personal-wordclouds}
-# findMostFreqTerms(dtm, INDEX = rep(1 : 20, each = 1L))
-#for(i in 1:2){
-#   m <- as.matrix(dtm[i,])
-#   freq <- colSums(m) 
-#   wordcloud(names(freq), m, min.freq=50, colors=brewer.pal(6, "Dark2"))  
-#}
-```
-
-## Example LDA Model
+## LDA Model
 
 This LDA function is from the `topicmodels` package. It "estimate[s] a LDA model using for example...Gibbs Sampling" [https://cran.r-project.org/web/packages/topicmodels/topicmodels.pdf]. This will return an object of class LDA, on which we can perform analysis.
 
@@ -170,10 +161,65 @@ FindTopicsNumber_plot(topicStats)
 After running producting the lda model above, the posterior function helps to evaluate the posterior probabilities of the specific terms per each topic and the specific topics per document. 
 
 ```{r posterior-lda}
-posterior(lda)$topics
+beta <- posterior(lda)$terms #hyperparameter beta is the terms per topic
+
+theta <- posterior(lda)$topics
+theta
 ```
 
-Question: Do we want to consider perplexity? Split the data into training and testing to see how well the model predicts for different candidates?
+## Visualized topics and terms
+
+Next, we can assign pseudo-names for each topic by concatenating the 5 terms with the highest probability from each topic.
+
+```{r pseudo-topic-names}
+pseudo_name <- terms(lda, 5)
+topicNames <- apply(pseudo_name, 2, paste, collapse=" ")
+topicNames
+```
+
+```{r topic-wordclouds, warning=FALSE, message=FALSE}
+for(i in 1:K){
+    topic <- i
+    top40terms <- sort(beta[topic,], decreasing=TRUE)[1:40]
+    words <- names(top40terms)
+    probabilities <- sort(beta[topic,], decreasing=TRUE)[1:40]
+    
+    wordcloud(words, probabilities, random.order = FALSE, scale=c(4,.5), rot.per=.5, 
+              colors = brewer.pal(6, "Dark2"), random.color = FALSE)
+}
+```
+
+## Re-ranking Topics
+
+As referenced in [https://tm4ss.github.io/docs/Tutorial_6_Topic_Models.html], TF-IDF, otherwise known as Term Frequency - Inverse Document Frequency, calculates "the frequency of a term adjusted for how rarely it is used" [https://www.tidytextmining.com/tfidf.html]. In this way, some of the terms that are used across multiple topics drop in significance to bring attention to the terms that are rarely used and are thus more significant to defining a topic.
+
+```{r re-rank}
+# re-rank top topic terms for topic names
+topicNames <- apply(lda::top.topic.words(beta, 5, by.score = T), 2, paste, collapse = " ")
+
+# Most probable topics across the corpus, sorted in descending order
+topicProportions <- colSums(theta) / nrow(dtm)  # mean probablities over all paragraphs
+names(topicProportions) <- topicNames           # assign the topic names created before
+sort(topicProportions, decreasing = TRUE)       # show summed proportions (descending)
+```
+
+```{r visualize-topic-proportion}
+top_per_doc <- topics(lda, k = 20)
+data <- melt(top_per_doc)
+data <- data %>%
+    group_by(Var2) %>%
+    mutate(value = value/sum(value))
+
+mycolors <- colorRampPalette(brewer.pal(8, "Set2"))(15)
+
+glimpse(data)
+ggplot(data, mapping=aes(x=Var2, y=value, fill= as.factor(Var1))) +
+    geom_bar(stat="identity") +
+    labs(y = "Proportion", x = "Candidate", fill = "Topic", 
+         title = "Per Candidate Proportion of Topics") + 
+    scale_fill_manual(values = mycolors) + 
+    theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
 
 ## Visualize fitted model with LDAvis
 
