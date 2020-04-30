@@ -243,7 +243,7 @@ topicmodels2LDAvis <- function(x, ...){
 json <- topicmodels2LDAvis(lda)
 ```
 
-```{r visualize-json}
+```{r visualize-json, warning=FALSE}
 serVis(json, open.brower=interactive(), out.dir = "LDAvis_files", 
-       as.gist = TRUE)
+       as.gist = TRUE, description = "Topics from the 2019-2020 Democratic Debates")
 ```
