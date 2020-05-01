@@ -173,7 +173,6 @@ After running producting the lda model above, the posterior function helps to ev
 ```{r posterior-lda}
 beta <- posterior(lda)$terms # beta is the terms per topic
 theta <- posterior(lda)$topics
-theta
 ```
 
 ## Visualized topics and terms
@@ -213,16 +212,12 @@ sort(topicProportions, decreasing = TRUE)       # show summed proportions (desce
 ```
 
 ```{r visualize-topic-proportion}
-top_per_doc <- topics(lda, k = 20)
-data <- melt(top_per_doc)
-data <- data %>%
-    group_by(Var2) %>%
-    mutate(value = value/sum(value))
+data2 <- melt(t(theta))
 
 mycolors <- colorRampPalette(brewer.pal(8, "Set2"))(K)
 
 glimpse(data)
-ggplot(data, mapping=aes(x=Var2, y=value, fill= as.factor(Var1))) +
+ggplot(data2, mapping=aes(x=Var2, y=value, fill= as.factor(Var1))) +
     geom_bar(stat="identity") +
     labs(y = "Proportion", x = "Candidate", fill = "Topic", 
          title = "Per Candidate Proportion of Topics") + 
