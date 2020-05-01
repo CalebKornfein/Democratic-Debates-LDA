@@ -163,9 +163,14 @@ topics(lda, k = 20)
 terms(lda, k = 20)
 ```
 
+
+```{r}
+as.matrix(topics(lda,k = 20)[,])
+```
+
 ```{r heatmap}
-plot(topics(lda, k = 20), col = topo.colors, ylab = "Topics", cex.axis = .60, las = 2, 
-     main = "Heat Map of Topic Proportions per Candidate", xlab = " ")
+plot(topics(lda, k = 20), fmt.cell='%.2g', col = topo.colors, ylab = "Rank", cex.axis = .60, las = 2, 
+     main = "Chart of Rank of Topics per Candidate", xlab = " ", breaks = c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13))
 ```
 
 After running producting the lda model above, the posterior function helps to evaluate the posterior probabilities of the specific terms per each topic and the specific topics per document. 
