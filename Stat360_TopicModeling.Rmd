@@ -163,11 +163,6 @@ topics(lda, k = 20)
 terms(lda, k = 20)
 ```
 
-
-```{r}
-as.matrix(topics(lda,k = 20)[,])
-```
-
 ```{r heatmap}
 plot(topics(lda, k = 20), fmt.cell='%.2g', col = topo.colors, ylab = "Rank", cex.axis = .60, las = 2, 
      main = "Chart of Rank of Topics per Candidate", xlab = " ", breaks = c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13))
@@ -249,9 +244,11 @@ topicmodels2LDAvis <- function(x, ...){
 }
 
 json <- topicmodels2LDAvis(lda)
+
+RJSONIO::fromJSON(json)$topic.order
 ```
 
 ```{r visualize-json, warning=FALSE}
-serVis(json, open.brower=interactive(), out.dir = "LDAvis_files", 
+serVis(json, open.brower=interactive(), out.dir = "LDAvis_final_files", 
        as.gist = TRUE, description = "Topics from the 2019-2020 Democratic Debates")
 ```
