@@ -118,7 +118,7 @@ wordcloud(names(freq), freq, min.freq=175, colors=brewer.pal(6, "Dark2"), random
 
 This function comes from the `ldatuning` package. This function "calculates different metrics to estimate the most preferable number of topics for LDA model" [https://cran.r-project.org/web/packages/ldatuning/ldatuning.pdf]. Here, it uses 4 scoring algorithms to evaluate the number of topics: Arun 2010, CaoJuan 2009, Griffiths 2004, and Deveaud 2014. 
 
-```{r optimalTopics, cache=TRUE, eval = false}
+```{r optimalTopics, cache=TRUE, eval = FALSE}
 N <- 2500 ; ALPHA <- .01 ; BURNIN = 200;
 
 topicStats <- FindTopicsNumber(dtm
