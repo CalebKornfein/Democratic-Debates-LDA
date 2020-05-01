@@ -21,6 +21,7 @@ library(servr)
 library(lda)
 library(gistr)
 library(reshape2)
+library(plot.matrix)
 ```
 
 ## Loading Data
@@ -160,6 +161,9 @@ These two functions return a list or matrix containing the most likely terms for
 ```{r visualizing}
 topics(lda, k = 20)
 terms(lda, k = 20)
+
+plot(topics(lda, k = 20), col = topo.colors, ylab = "Topics", xlab = "Candidates", 
+     main = "Heat Map of Topic Proportions per Candidate", axis.col = NULL)
 ```
 
 After running producting the lda model above, the posterior function helps to evaluate the posterior probabilities of the specific terms per each topic and the specific topics per document. 
