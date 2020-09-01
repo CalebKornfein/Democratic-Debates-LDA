@@ -1,6 +1,6 @@
 # Stat360-Topic-Modeling
 Topic Modeling for the Democratic Debates
 
-This project was undertaken by Meredith Brown and Caleb Kornfein as their final project for Statistics 360: Bayesian and Modern Statistics.
+This project was undertaken by Caleb Kornfein and Meredith Brown as their final project for Statistics 360: Bayesian and Modern Statistics.
 
-Modeling text data from the 2019-2020 Democratic Debates, this project used LDA topic modeling to analyze which topics occur most frequently and by which candidate.
+Modeling text data from the 2019-2020 Democratic Debates, this project used LDA topic modeling to analyze which topics occur most frequently and by which candidate. The final report interpreting the model and results can be found in the document LDA_report.pdf.
