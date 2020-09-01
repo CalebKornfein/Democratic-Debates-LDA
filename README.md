@@ -1,5 +1,4 @@
 # Stat360-Topic-Modeling
-Topic Modeling for the Democratic Debates
 
 This project was undertaken by Caleb Kornfein and Meredith Brown as their final project for Statistics 360: Bayesian and Modern Statistics.
 
